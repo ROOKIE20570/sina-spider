@@ -8,6 +8,8 @@ from PIL import Image
 import random
 from urllib.parse import quote_plus
 import http.cookiejar as cookielib
+import selenium
+from selenium import webdriver
 
 """
 整体的思路是，
@@ -223,3 +225,11 @@ if __name__ == '__main__':
     cookie_path = "./cookies/cookie"  # 保存cookie 的文件名称
     weibo = WeiboLogin(username, password, cookie_path)
     weibo.login()
+
+    driver = webdriver.Chrome("chromedriver")
+    driver.get("http://www.baidu.com")
+
+    driver.add_cookie(weibo.session.cookies.get_dict())
+
+    driver.get('http://weibo.com')
+
