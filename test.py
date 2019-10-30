@@ -25,7 +25,6 @@ except:
 如果开启登录保护，需要输入验证码
 '''
 
-
 # 构造 Request headers
 agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:41.0) Gecko/20100101 Firefox/41.0'
 headers = {
@@ -129,7 +128,7 @@ def login(username, password):
         'prelt': '115',
         'url': 'http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack',
         'returntype': 'META'
-        }
+    }
     login_url = 'http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)'
     if showpin == 0:
         login_page = session.post(login_url, data=postdata, headers=headers)
@@ -153,7 +152,7 @@ def login(username, password):
     weibo_pa = r'<title>(.*?)</title>'
     # print(weibo_page.content.decode("utf-8"))
     userID = re.findall(weibo_pa, weibo_page.content.decode("utf-8", 'ignore'), re.S)[0]
-    print(u"欢迎你 %s, 你在正在使用 xchaoinfo 写的模拟登录微博" % userID)
+    print(u" %s正在模拟登录微博" % userID)
 
 
 if __name__ == "__main__":
@@ -167,23 +166,23 @@ if __name__ == "__main__":
     driver.get('http://weibo.com')
     for c in session.cookies:
         driver.add_cookie({'name': c.name, 'value': c.value, 'path': c.path, 'expire': c.expires})
-    driver.get('http://weibo.com')
+    driver.get("http://m.weibo.cn")
 
-    try:
-        element = WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '.gn_search_v2 input'))
-        )
-    finally:
-        # inputText = driver.find_element_by_css_selector('.gn_search_v2 input')
-        # inputText.send_keys("双眼皮")
-        # inputText.send_keys(Keys.ENTER)
-        driver.get("https://api.weibo.com/chat/#/chat?to_uid=5378713382&source_from=9")
-        try:
-            element = WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, '#webchat-textarea'))
-            )
-        finally:
-            text = driver.find_element_by_id("webchat-textarea")
-            text.send_keys("err")
-            text.send_keys(Keys.ENTER)
+    element = WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.m-search'))
+    )
+    element.click()
+
+    element = WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.nt-search input'))
+    )
+
+    element.send_keys("双眼皮")
+    element.send_keys(Keys.ENTER)
+
+    firstWeibo = WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'div:has(.m-font-comment)'))
+    )
+
+    firstWeibo.click()
 

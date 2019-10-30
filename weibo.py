@@ -8,17 +8,20 @@ from PIL import Image
 import random
 from urllib.parse import quote_plus
 import http.cookiejar as cookielib
-import selenium
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import json
+
 """
 整体的思路是，
 1. 先登录到 weibo.com，
 2. 然后用 weibo.com 的 cookie 跳转到 m.weibo.cn
 3. 保存 cookie 方便以后使用
+3. 仅仅在 Python3.4+ 测试通过，低版本没有测试
+4. 代码 PEP8 规范
 """
 
 agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:41.0) Gecko/20100101 Firefox/41.0'
@@ -176,7 +179,7 @@ class WeiboLogin(object):
         weibo_pa = r'<title>(.*?)</title>'
         # print(weibo_page.content.decode("utf-8"))
         userID = re.findall(weibo_pa, weibo_page.content.decode("utf-8", 'ignore'), re.S)[0]
-        print(u"欢迎你 %s, 你在正在使用 xchaoinfo 写的模拟登录微博" % userID)
+        print(u"%s正在模拟登录微博" % userID)
 
         # weibo.com 登录成功
         # 利用 weibo.com 的 cookie 登录到  m.weibo.cn
@@ -223,38 +226,77 @@ class WeiboLogin(object):
 
 
 if __name__ == '__main__':
+
+    cookie_path = "./cookies/cookie"  # 保存cookie 的文件名称
+    waitSeconds = 30
+
     username = "17853711812"  # 用户名
     password = "asdfgh"  # 密码
-    cookie_path = "./cookies/cookie"  # 保存cookie 的文件名称
+    sendContent = "test" #发送内容
     weibo = WeiboLogin(username, password, cookie_path)
     weibo.login()
 
     driver = webdriver.Chrome("chromedriver")
-    driver.get("http://m.weibo.cn")
-    element = WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, '.m-search'))
-    )
+    driver.get('http://weibo.com')
+    # gn_search_v2
 
     for c in weibo.session.cookies:
         driver.add_cookie({'name': c.name, 'value': c.value, 'path': c.path, 'expire': c.expires})
+    driver.get("http://weibo.com")
+    WebDriverWait(driver, waitSeconds).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.gn_search_v2'))
+    )
     driver.get("http://m.weibo.cn")
 
-    element = WebDriverWait(driver, 30).until(
+    element = WebDriverWait(driver, waitSeconds).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '.m-search'))
     )
     element.click()
 
-    element = WebDriverWait(driver, 30).until(
+    element = WebDriverWait(driver, waitSeconds).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, '.nt-search input'))
     )
 
     element.send_keys("双眼皮")
     element.send_keys(Keys.ENTER)
 
-    firstWeibo = WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, 'i.m-font-comment'))
+    firstWeibo = WebDriverWait(driver, waitSeconds).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.m-font-comment'))
     )
-    firstWeibo.click()
+    js = 'document.getElementsByClassName("m-font-comment")[0].click();'
+    driver.execute_script(js)
 
+    # m-avatar-box
+    WebDriverWait(driver, waitSeconds).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.m-box-center-a.main-text.m-text-cut.focus'))
+    )
+
+    curUrl = driver.current_url
+    weiboId = curUrl.split('/')[-1]
+    hotFlowUrl = "https://m.weibo.cn/comments/hotflow?id=" + weiboId + "&mid=" + weiboId + "&max_id_type=0"
+    hotflow = requests.get(hotFlowUrl)
+    hotflowDict = json.loads(hotflow.text)
+    hotflowData = hotflowDict["data"]['data']
+
+    userIds = set()
+    for item in hotflowData:
+        userInfo = item['user']
+        userIds.add(userInfo['id'])
+
+    chatTemplate = "https://m.weibo.cn/message/chat?uid="
+
+    for userId in userIds:
+        driver.get(chatTemplate+str(userId))
+        driver.find_element_by_css_selector('.m-box-center-a.main-text.m-text-cut.focus').click()
+        WebDriverWait(driver, waitSeconds).until(
+            EC.presence_of_element_located((By.TAG_NAME, 'textarea'))
+        )
+        textarea = driver.find_element_by_tag_name("textarea")
+        textarea.send_keys(sendContent)
+
+        button = driver.find_element_by_class_name("btn-send")
+        button.click()
+
+        time.sleep(2)
 
 
