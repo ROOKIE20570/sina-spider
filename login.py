@@ -8,12 +8,7 @@ from PIL import Image
 import random
 from urllib.parse import quote_plus
 import http.cookiejar as cookielib
-import selenium
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
 
 """
 整体的思路是，
