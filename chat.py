@@ -3,10 +3,8 @@ import json
 import login
 
 
-def sendText(uid: str, text: str):
-    weibo = login.WeiboLogin("17853711812", "asdfgh", "./cookies/cookie")
-    weibo.login()
-    session = weibo.session
+
+def sendText(uid: str, text: str, session):
     configUrl = "https://m.weibo.cn/api/config"
     try:
         configRes = session.get(configUrl)
@@ -20,10 +18,10 @@ def sendText(uid: str, text: str):
 
         chatUrl = "https://m.weibo.cn/api/chat/send"
 
-        sent = session.post(chatUrl, {'content': text, "uid": uid, st: st},headers={"x-xsrf-token":st,'x-requested-with':"XMLHttpRequest",'referer':"https://m.weibo.cn/message/chat?uid="+uid+"&name=msgbox"})
+        sent = session.post(chatUrl, {'content': text, "uid": uid, st: st},
+                            headers={"x-xsrf-token": st, 'x-requested-with': "XMLHttpRequest",
+                                     'referer': "https://m.weibo.cn/message/chat?uid=" + uid + "&name=msgbox"})
         print(sent.text)
     except Exception as e:
         print(e)
-
-sendText("5284531426","tt")
 
