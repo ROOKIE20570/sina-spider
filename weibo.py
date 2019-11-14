@@ -225,6 +225,7 @@ class WeiboLogin(object):
         self.session.cookies.save()
 
 
+#todo 账号池  发送内容配置 把热门的爬完
 if __name__ == '__main__':
 
     cookie_path = "./cookies/cookie"  # 保存cookie 的文件名称
@@ -232,7 +233,7 @@ if __name__ == '__main__':
 
     username = "17853711812"  # 用户名
     password = "asdfgh"  # 密码
-    sendContent = "test" #发送内容
+    sendContent = "test"  # 发送内容
     weibo = WeiboLogin(username, password, cookie_path)
     weibo.login()
 
@@ -271,6 +272,7 @@ if __name__ == '__main__':
         EC.presence_of_element_located((By.CSS_SELECTOR, '.m-box-center-a.main-text.m-text-cut.focus'))
     )
 
+
     curUrl = driver.current_url
     weiboId = curUrl.split('/')[-1]
     hotFlowUrl = "https://m.weibo.cn/comments/hotflow?id=" + weiboId + "&mid=" + weiboId + "&max_id_type=0"
@@ -280,17 +282,21 @@ if __name__ == '__main__':
 
     userIds = set()
     for item in hotflowData:
+
         userInfo = item['user']
         userIds.add(userInfo['id'])
 
     chatTemplate = "https://m.weibo.cn/message/chat?uid="
 
     for userId in userIds:
-        driver.get(chatTemplate+str(userId))
+
+        driver.get(chatTemplate + str(userId))
         driver.find_element_by_css_selector('.m-box-center-a.main-text.m-text-cut.focus').click()
+
         WebDriverWait(driver, waitSeconds).until(
             EC.presence_of_element_located((By.TAG_NAME, 'textarea'))
         )
+
         textarea = driver.find_element_by_tag_name("textarea")
         textarea.send_keys(sendContent)
 
@@ -298,5 +304,3 @@ if __name__ == '__main__':
         button.click()
 
         time.sleep(2)
-
-

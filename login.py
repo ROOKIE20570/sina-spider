@@ -229,6 +229,7 @@ if __name__ == '__main__':
     weibo = WeiboLogin(username, password, cookie_path)
     weibo.login()
 
+
     driver = webdriver.Chrome("chromedriver")
     driver.get("http://m.weibo.cn")
     element = WebDriverWait(driver, 30).until(
