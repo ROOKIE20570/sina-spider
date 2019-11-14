@@ -14,6 +14,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 """
 整体的思路是，
 1. 先登录到 weibo.com，
@@ -28,9 +29,7 @@ headers = {
 
 
 class WeiboLogin(object):
-    """
-    通过登录 weibo.com 然后跳转到 m.weibo.cn
-    """
+
 
     def __init__(self, user, password, cookie_path):
         super(WeiboLogin, self).__init__()
@@ -44,44 +43,31 @@ class WeiboLogin(object):
         self.postdata = dict()
 
     def get_su(self):
-        """
-        对 email 地址和手机号码 先 javascript 中 encodeURIComponent
-        对应 Python 3 中的是 urllib.parse.quote_plus
-        然后在 base64 加密后decode
-        """
+
         username_quote = quote_plus(self.user)
         username_base64 = base64.b64encode(username_quote.encode("utf-8"))
         return username_base64.decode("utf-8")
 
-    # 预登陆获得 servertime, nonce, pubkey, rsakv
     def get_server_data(self, su):
-        """与原来的相比，微博的登录从 v1.4.18 升级到了 v1.4.19
-        这里使用了 URL 拼接的方式，也可以用 Params 参数传递的方式
-        """
+
         pre_url = "http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su="
         pre_url = pre_url + su + "&rsakt=mod&checkpin=1&client=ssologin.js(v1.4.19)&_="
         pre_url = pre_url + str(int(time.time() * 1000))
         pre_data_res = self.session.get(pre_url, headers=headers)
-        # print(pre_data_res.text)
         sever_data = eval(pre_data_res.content.decode("utf-8").replace("sinaSSOController.preloginCallBack", ''))
 
         return sever_data
 
     def get_password(self, servertime, nonce, pubkey):
-        """对密码进行 RSA 的加密"""
         rsaPublickey = int(pubkey, 16)
-        key = rsa.PublicKey(rsaPublickey, 65537)  # 创建公钥
-        message = str(servertime) + '\t' + str(nonce) + '\n' + str(self.password)  # 拼接明文js加密文件中得到
+        key = rsa.PublicKey(rsaPublickey, 65537)
+        message = str(servertime) + '\t' + str(nonce) + '\n' + str(self.password)
         message = message.encode("utf-8")
-        passwd = rsa.encrypt(message, key)  # 加密
-        passwd = binascii.b2a_hex(passwd)  # 将加密信息转换为16进制。
+        passwd = rsa.encrypt(message, key)
+        passwd = binascii.b2a_hex(passwd)
         return passwd
 
     def get_cha(self, pcid):
-        """获取验证码，并且用PIL打开，
-        1. 如果本机安装了图片查看软件，也可以用 os.subprocess 的打开验证码
-        2. 可以改写此函数接入打码平台。
-        """
         cha_url = "https://login.sina.com.cn/cgi/pin.php?r="
         cha_url = cha_url + str(int(random.random() * 100000000)) + "&s=0&p="
         cha_url = cha_url + pcid
@@ -97,14 +83,13 @@ class WeiboLogin(object):
             print(u"请到当前目录下，找到验证码后输入")
 
     def pre_login(self):
-        # su 是加密后的用户名
         su = self.get_su()
         sever_data = self.get_server_data(su)
         servertime = sever_data["servertime"]
         nonce = sever_data['nonce']
         rsakv = sever_data["rsakv"]
         pubkey = sever_data["pubkey"]
-        showpin = sever_data["showpin"]  # 这个参数的意义待探索
+        showpin = sever_data["showpin"]
         password_secret = self.get_password(servertime, nonce, pubkey)
 
         self.postdata = {
@@ -127,12 +112,12 @@ class WeiboLogin(object):
             'prelt': '115',
             "cdult": "38",
             'url': 'http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack',
-            'returntype': 'TEXT'  # 这里是 TEXT 和 META 选择，具体含义待探索
+            'returntype': 'TEXT'
         }
         return sever_data
 
     def login(self):
-        # 先不输入验证码登录测试
+
         try:
             sever_data = self.pre_login()
             login_url = 'https://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.19)&_'
@@ -150,7 +135,6 @@ class WeiboLogin(object):
             login_page = self.session.post(login_url, data=self.postdata, headers=headers)
             ticket_js = login_page.json()
             ticket = ticket_js["ticket"]
-        # 以下内容是 处理登录跳转链接
         save_pa = r'==-(\d+)-'
         ssosavestate = int(re.findall(save_pa, ticket)[0]) + 3600 * 7
         jump_ticket_params = {
@@ -174,19 +158,13 @@ class WeiboLogin(object):
         web_weibo_url = "http://weibo.com/%s/profile?topnav=1&wvr=6&is_all=1" % uuid_res
         weibo_page = self.session.get(web_weibo_url, headers=headers)
         weibo_pa = r'<title>(.*?)</title>'
-        # print(weibo_page.content.decode("utf-8"))
         userID = re.findall(weibo_pa, weibo_page.content.decode("utf-8", 'ignore'), re.S)[0]
-        print(u"欢迎你 %s, 你在正在使用 xchaoinfo 写的模拟登录微博" % userID)
-
-        # weibo.com 登录成功
-        # 利用 weibo.com 的 cookie 登录到  m.weibo.cn
-        print("利用 weibo.com 的 cookie 登录到  m.weibo.cn")
+        print(u"欢迎你 %s" % userID)
         Mheaders = {
             "Host": "login.sina.com.cn",
             "User-Agent": agent
         }
 
-        # m.weibo.cn 登录的 url 拼接
         _rand = str(time.time())
         mParams = {
             "url": "https://m.weibo.cn/",
@@ -205,12 +183,8 @@ class WeiboLogin(object):
         mpa = r'replace\((.*?)\);'
         mres = re.findall(mpa, mhtml.text)
 
-        # 关键的跳转步骤，这里不出问题，基本就成功了。
         Mheaders["Host"] = "passport.weibo.cn"
         self.session.get(eval(mres[0]), headers=Mheaders)
-        # mlogin = self.session.get(eval(mres[0]), headers=Mheaders)
-        # print(mlogin.status_code)
-        # 进过几次 页面跳转后，m.weibo.cn 登录成功，下次测试是否登录成功
         Mheaders["Host"] = "m.weibo.cn"
         Set_url = "https://m.weibo.cn"
         pro = self.session.get(Set_url, headers=Mheaders)
@@ -218,6 +192,4 @@ class WeiboLogin(object):
         login_res = re.findall(pa_login, pro.text)
         print(login_res)
 
-        # 可以通过 session.cookies 对 cookies 进行下一步相关操作
         self.session.cookies.save()
-

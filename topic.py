@@ -5,8 +5,8 @@ import json
 
 
 def getWeiboAboutTitle(title: str, page : int):
-    typeEncoded = urlParse.quote("type=1&q=" + title + "page="+str(page))
-    url = "https://m.weibo.cn/api/container/getIndex?containerid=100103" + typeEncoded + "&page_type=searchall"
+    typeEncoded = urlParse.quote("type=1&q=" + title )
+    url = "https://m.weibo.cn/api/container/getIndex?containerid=100103" + typeEncoded + "&page_type=searchall&page="+str(page)
     try:
         res = requests.get(url)
         if res.status_code != 200:
